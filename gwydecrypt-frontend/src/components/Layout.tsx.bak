@@ -1,0 +1,108 @@
+import { Outlet, Link, useLocation } from 'react-router-dom';
+import {
+  Container,
+  Group,
+  UnstyledButton,
+  Text,
+  ActionIcon,
+  Stack
+} from '@mantine/core';
+import {
+  IconDashboard,
+  IconWallet,
+  IconChartHistogram,
+  IconSettings,
+  IconLogout
+} from '@tabler/icons-react';
+import { useAuthStore } from '../store/authStore';
+
+export default function Layout() {
+  const location = useLocation();
+  const { user, logout } = useAuthStore();
+
+  const navigation = [
+    { path: '/dashboard', label: 'Dashboard', icon: IconDashboard },
+    { path: '/wallets', label: 'Wallets', icon: IconWallet },
+    { path: '/portfolio', label: 'Portfolio', icon: IconChartHistogram },
+    { path: '/admin', label: 'Admin', icon: IconSettings },
+  ];
+
+  const NavLink = ({ icon: Icon, label, path }: { icon: any; label: string; path: string }) => {
+    const isActive = location.pathname === path;
+
+    return (
+      <UnstyledButton
+        component={Link}
+        to={path}
+        sx={{
+          width: '100%',
+          padding: '12px',
+          marginBottom: '4px',
+          borderRadius: '8px',
+          backgroundColor: isActive ? '#228be6' : 'transparent',
+          color: isActive ? 'white' : 'inherit',
+          fontWeight: isActive ? 600 : 'normal',
+          '&:hover': {
+            backgroundColor: isActive ? '#228be6' : '#e9ecef',
+          },
+        }}
+      >
+        <Group noWrap>
+          <Icon size={20} />
+          <Text size="sm">{label}</Text>
+        </Group>
+      </UnstyledButton>
+    );
+  };
+
+  return (
+    <>
+      <div style={{ display: 'flex', minHeight: '100vh', border: '10px solid red' }}>
+        <div style={{
+          width: '250px',
+          backgroundColor: '#lightblue',
+          borderRight: '1px solid #dee2e6',
+          padding: '20px',
+          color: 'black'
+        }}>
+          <h1 style={{ color: 'red', fontSize: '24px' }}>SIDEBAR</h1>
+          <Stack>
+            <Text fw={700} size="xl" mb="lg">GwydeCrypt</Text>
+            <Stack spacing={4}>
+              {navigation.map((item) => (
+                <NavLink key={item.path} icon={item.icon} label={item.label} path={item.path} />
+              ))}
+            </Stack>
+          </Stack>
+        </div>
+
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'lightyellow' }}>
+          <div style={{
+            height: '60px',
+            backgroundColor: 'white',
+            borderBottom: '1px solid #dee2e6',
+            padding: '0 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <h1 style={{ color: 'blue' }}>HEADER: {navigation.find(n => location.pathname === n.path)?.label || 'Dashboard'}</h1>
+            <Group>
+              <Text>{user?.email}</Text>
+              <ActionIcon variant="light" color="red" onClick={logout}>
+                <IconLogout size={20} />
+              </ActionIcon>
+            </Group>
+          </div>
+
+          <div style={{ flex: 1, padding: '20px', backgroundColor: 'lightgreen' }}>
+            <h1 style={{ color: 'purple' }}>CONTENT AREA</h1>
+            <Container fluid>
+              <Outlet />
+            </Container>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}

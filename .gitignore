@@ -1,0 +1,107 @@
+# Dependencias
+node_modules/
+vendor/
+package-lock.json
+composer.lock
+
+# Entorno y credenciales
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
+
+# Base de datos
+*.sqlite
+*.sqlite-*
+*.db
+
+# Cache y temporales
+.cache/
+.parcel-cache/
+.vite/
+.next/
+nuxt/
+dist/
+dist-ssr/
+*.local
+
+# IDEs
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Build outputs
+/build/
+/public/build/
+/public/hot/
+
+# Laravel específico
+/storage/*.key
+/app/Providers/*
+!/app/Providers/AppServiceProvider.php
+/bootstrap/cache/
+config.php
+
+# Testing
+/coverage/
+.nyc_output
+
+# Misc
+.PS
+*.pem
+*.key
+*.cert
+*.crt
+
+# Debug
+npm-debug.log
+yarn-error.log
+
+# Laravel
+/public/hot
+/public/storage
+/storage/*.key
+.env.backup
+phpunit.xml
+.phpunit.result.cache
+
+# Logs de Laravel
+/storage/logs/*
+!/storage/logs/.gitkeep
+
+# Archivos de configuración con credenciales
+config/app.php
+config/database.php
+config/mail.php
+config/services.php
+
+# Tokens y claves
+*.token
+*.pem
+*.key
+credentials.json
+firebase-credentials.json
+
+# Vfat (configuraciones privadas si existen)
+.vfatrc
+
+# Temporales
+temp/
+tmp/
+nul
+
+# Claude
+.claude/
