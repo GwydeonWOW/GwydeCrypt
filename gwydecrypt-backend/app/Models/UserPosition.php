@@ -24,6 +24,10 @@ class UserPosition extends Model
         'pool_share',
         'user_tokens',
         'pending_rewards',
+        'tick_low',
+        'tick_up',
+        'current_tick',
+        'in_range',
         'last_synced_at',
     ];
 
@@ -38,6 +42,10 @@ class UserPosition extends Model
         'pool_share' => 'decimal:6',
         'user_tokens' => 'array',
         'pending_rewards' => 'array',
+        'tick_low' => 'integer',
+        'tick_up' => 'integer',
+        'current_tick' => 'integer',
+        'in_range' => 'boolean',
         'last_synced_at' => 'datetime',
     ];
 
@@ -47,6 +55,25 @@ class UserPosition extends Model
     public function pool(): BelongsTo
     {
         return $this->belongsTo(Pool::class);
+    }
+
+    /**
+     * Set the in_range attribute - ensure boolean type for PostgreSQL
+     */
+    public function setInRangeAttribute($value): void
+    {
+        $this->attributes['in_range'] = $value ? 'true' : 'false';
+    }
+
+    /**
+     * Get the in_range attribute - convert to boolean
+     */
+    public function getInRangeAttribute($value): ?bool
+    {
+        if ($value === null) {
+            return null;
+        }
+        return $value === 'true' || $value === true || $value === 1 || $value === '1';
     }
 
     /**

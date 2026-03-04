@@ -31,6 +31,10 @@ export interface PoolPosition {
     amount: string;
     value_usd: number;
   }>;
+  tick_low: number | null;
+  tick_up: number | null;
+  current_tick: number | null;
+  in_range: boolean | null;
   last_synced_at: string;
 }
 

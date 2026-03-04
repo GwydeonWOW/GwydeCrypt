@@ -141,6 +141,31 @@ class VfatUserPositionsService
                     }
                 }
 
+                // Extraer datos de ticks para calcular rango (Uniswap V3, Thena V3, etc.)
+                $tickLow = null;
+                $tickUp = null;
+                $currentTick = null;
+                $inRange = null;
+
+                if (isset($position['nft']['tick_low'], $position['nft']['tick_up'])) {
+                    $tickLow = intval($position['nft']['tick_low']);
+                    $tickUp = intval($position['nft']['tick_up']);
+
+                    // Obtener el tick actual del pool
+                    if (isset($position['farm']['pool']['tick'])) {
+                        $currentTick = intval($position['farm']['pool']['tick']);
+                    } elseif (isset($position['tick'])) {
+                        $currentTick = intval($position['tick']);
+                    }
+
+                    // Calcular si está en rango
+                    // En rango cuando: tick_low <= current_tick <= tick_up
+                    if ($currentTick !== null) {
+                        // Asegurar que el resultado sea true/false explícitamente
+                        $inRange = (($tickLow <= $currentTick) && ($currentTick <= $tickUp)) ? true : false;
+                    }
+                }
+
                 // Crear o actualizar posición del usuario
                 $userPosition = UserPosition::updateOrCreate(
                     [
@@ -154,6 +179,10 @@ class VfatUserPositionsService
                         'pool_share' => 0, // Se calcularía si tenemos el TVL total del pool
                         'user_tokens' => $userTokens,
                         'pending_rewards' => $pendingRewards,
+                        'tick_low' => $tickLow,
+                        'tick_up' => $tickUp,
+                        'current_tick' => $currentTick,
+                        'in_range' => $inRange,
                         'last_synced_at' => now(),
                     ]
                 );
@@ -189,7 +218,7 @@ class VfatUserPositionsService
     {
         $positions = UserPosition::forUser($userId)
             ->with('pool')
-            ->whereHas('pool', fn ($q) => $q->where('is_active', true)->where('is_killed', false))
+            ->whereHas('pool', fn ($q) => $q->where('is_active', 'true')->where('is_killed', 'false'))
             ->recentlySynced(30)
             ->get();
 
@@ -213,7 +242,7 @@ class VfatUserPositionsService
     {
         $positions = UserPosition::forWallet($walletAddress)
             ->with('pool')
-            ->whereHas('pool', fn ($q) => $q->where('is_active', true)->where('is_killed', false))
+            ->whereHas('pool', fn ($q) => $q->where('is_active', 'true')->where('is_killed', 'false'))
             ->recentlySynced(30)
             ->get();
 

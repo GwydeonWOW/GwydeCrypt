@@ -6,6 +6,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 GwydeCrypt is a multi-chain cryptocurrency portfolio tracking platform with backend (Laravel 12/PHP) and frontend (React/TypeScript). The system tracks wallets across multiple blockchains (Ethereum, Solana, Polygon, SUI, Optimism, BNB, Arbitrum, BTC), provides real-time price data from multiple APIs with automatic fallback, and includes investment/sales tracking.
 
+## Git Guidelines
+
+**CRITICAL: Git operations require explicit user permission**
+
+✅ **Allowed operations (no permission needed):**
+- Reading files from the repository
+- Making local code changes
+- Modifying files according to user instructions
+- Checking git status or history
+
+❌ **NEVER perform without explicit permission:**
+- `git add` - Adding files to staging
+- `git commit` - Creating commits
+- `git push` - Pushing to remote
+- `git remote` - Modifying remotes
+
+**Repository URL:** https://github.com/GwydeonWOW/GwydeCrypt.git
+
+**Workflow:**
+1. Make code changes as requested
+2. Wait for user to review changes
+3. ONLY commit/push when user explicitly requests it
+
 ## Common Development Commands
 
 ### Backend (Laravel)

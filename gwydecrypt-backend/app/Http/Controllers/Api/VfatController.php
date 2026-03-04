@@ -287,7 +287,7 @@ class VfatController extends BaseController
             // Obtener posiciones para todas las wallets del usuario
             $positions = UserPosition::forUser($user->id)
                 ->with('pool')
-                ->whereHas('pool', fn ($q) => $q->where('is_active', new \Illuminate\Database\Query\Expression('TRUE'))->where('is_killed', new \Illuminate\Database\Query\Expression('FALSE')))
+                ->whereHas('pool', fn ($q) => $q->where('is_active', 'true')->where('is_killed', 'false'))
                 ->recentlySynced(30) // Solo posiciones sincronizados en los últimos 30 min
                 ->get();
 
@@ -316,6 +316,10 @@ class VfatController extends BaseController
                     'pool_share' => (float) $position->pool_share,
                     'user_tokens' => $position->user_tokens ?? [],
                     'pending_rewards' => $position->pending_rewards ?? [],
+                    'tick_low' => $position->tick_low,
+                    'tick_up' => $position->tick_up,
+                    'current_tick' => $position->current_tick,
+                    'in_range' => $position->in_range,
                     'last_synced_at' => $position->last_synced_at?->toIso8601String(),
                 ];
             });

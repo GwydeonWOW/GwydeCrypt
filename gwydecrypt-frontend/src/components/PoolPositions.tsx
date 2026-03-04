@@ -47,10 +47,10 @@ const PositionRow = ({ position }: { position: PoolPosition }) => {
   const poolTypeColor = position.pool.pool_type === 'farm' ? 'yellow' : 'blue';
   const poolTypeLabel = position.pool.pool_type === 'farm' ? 'Farming' : 'Pool';
 
-  // Determinar si está en rango (tiene rewards pendientes)
+  // Determinar si está en rango desde el backend (calculado con ticks)
+  const inRange = position.in_range === true;
   const hasPendingRewards = position.pending_rewards && position.pending_rewards.length > 0;
   const totalRewardsValue = position.pending_rewards?.reduce((sum, r) => sum + r.value_usd, 0) || 0;
-  const inRange = totalRewardsValue > 0;
 
   // Calcular tiempo desde último sync
   const lastSyncTime = new Date(position.last_synced_at).getTime();
