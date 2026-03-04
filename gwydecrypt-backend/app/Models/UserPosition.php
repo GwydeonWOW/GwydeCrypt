@@ -45,7 +45,7 @@ class UserPosition extends Model
         'tick_low' => 'integer',
         'tick_up' => 'integer',
         'current_tick' => 'integer',
-        'in_range' => 'boolean',
+        // in_range uses custom accessor/mutator for PostgreSQL boolean
         'last_synced_at' => 'datetime',
     ];
 
