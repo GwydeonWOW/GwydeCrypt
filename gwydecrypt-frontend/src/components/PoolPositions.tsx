@@ -12,6 +12,8 @@ import {
   LoadingOverlay,
   Collapse,
   Switch,
+  Progress,
+  Tooltip,
 } from '@mantine/core';
 import {
   IconRefresh,
@@ -23,6 +25,10 @@ import {
   IconChevronUp,
   IconAlertTriangle,
   IconClock,
+  IconArrowLeft,
+  IconArrowRight,
+  IconArrowUp,
+  IconArrowDown,
 } from '@tabler/icons-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getUserPoolPositions, syncUserPoolPositions, vfatKeys, type PoolPosition } from '../api/vfat';
@@ -38,6 +44,264 @@ const formatAPY = (apy: number) => {
   if (apy >= 100) return `${apy.toFixed(0)}%`;
   if (apy >= 10) return `${apy.toFixed(1)}%`;
   return `${apy.toFixed(2)}%`;
+};
+
+// Range Indicator Props
+interface RangeIndicatorProps {
+  tickLow: number | null;
+  tickUp: number | null;
+  currentTick: number | null;
+  inRange: boolean | null;
+}
+
+// Helper function to calculate range status
+const calculateRangeStatus = (tickLow: number, tickUp: number, currentTick: number, inRange: boolean) => {
+  const range = tickUp - tickLow;
+  const position = currentTick - tickLow;
+  const percentage = Math.max(0, Math.min(100, (position / range) * 100));
+
+  let color = '#4ade80'; // green
+  let statusText = 'Zona segura';
+  let statusLevel = 'safe';
+
+  if (!inRange) {
+    color = '#ef4444'; // red
+    statusText = 'Fuera de rango';
+    statusLevel = 'out';
+  } else if (percentage < 30 || percentage > 70) {
+    color = '#fbbf24'; // yellow
+    statusText = 'Cerca del límite';
+    statusLevel = 'warning';
+  }
+
+  return { percentage, color, statusText, statusLevel };
+};
+
+// Compact Range Indicator (horizontal bar with vertical line)
+const RangeIndicatorCompact = ({ tickLow, tickUp, currentTick, inRange }: RangeIndicatorProps) => {
+  if (tickLow === null || tickUp === null || currentTick === null) {
+    return (
+      <Tooltip label="Datos de rango no disponibles">
+        <Text size="xs" c="dimmed">N/A</Text>
+      </Tooltip>
+    );
+  }
+
+  const { percentage, color } = calculateRangeStatus(tickLow, tickUp, currentTick, inRange || false);
+
+  // Posición de la línea vertical (0-100%)
+  // Si está fuera de rango por arriba, clamping al 100%
+  // Si está fuera de rango por abajo, clamping al 0%
+  const displayPosition = inRange
+    ? percentage
+    : currentTick > tickUp ? 100 : 0;
+
+  return (
+    <Tooltip
+      label={
+        <Stack spacing={0}>
+          <Text size="xs" fw={600}>Rango: {tickLow.toLocaleString()} / {tickUp.toLocaleString()}</Text>
+          <Text size="xs">Actual: {currentTick.toLocaleString()}</Text>
+          <Text size="xs">Posición: {percentage.toFixed(1)}%</Text>
+        </Stack>
+      }
+    >
+      <div style={{ position: 'relative', width: '120px', height: '30px', margin: '0 auto' }}>
+        {/* Barra horizontal de fondo (representa el rango completo) */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '0',
+            right: '0',
+            height: '8px',
+            backgroundColor: '#1f2937',
+            borderRadius: '4px',
+            transform: 'translateY(-50%)',
+            border: '1px solid #374151',
+          }}
+        />
+
+        {/* Línea vertical marcando la posición actual */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: `${displayPosition}%`,
+            width: '3px',
+            height: '24px',
+            backgroundColor: color,
+            transform: 'translate(-50%, -50%)',
+            borderRadius: '2px',
+            boxShadow: `0 0 8px ${color}, 0 0 4px ${color}`,
+            transition: 'all 0.3s ease',
+          }}
+        />
+
+        {/* Indicador si está fuera de rango */}
+        {!inRange && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '2px',
+              left: `${currentTick > tickUp ? 100 : 0}%`,
+              transform: 'translateX(-50%)',
+            }}
+          >
+            <IconAlertTriangle size={12} color="#ef4444" />
+          </div>
+        )}
+      </div>
+    </Tooltip>
+  );
+};
+
+// Detailed Range Indicator (for expanded view)
+const RangeIndicatorDetailed = ({ tickLow, tickUp, currentTick, inRange }: RangeIndicatorProps) => {
+  if (tickLow === null || tickUp === null || currentTick === null) {
+    return (
+      <Alert color="gray">
+        <Text size="sm">Datos de rango no disponibles</Text>
+      </Alert>
+    );
+  }
+
+  const { percentage, color, statusText } = calculateRangeStatus(tickLow, tickUp, currentTick, inRange || false);
+
+  // Calcular distancias
+  const range = tickUp - tickLow;
+  const distanceFromLow = ((currentTick - tickLow) / range * 100);
+  const distanceFromUp = ((tickUp - currentTick) / range * 100);
+
+  // Posición visual (clamping si está fuera de rango)
+  const displayPosition = inRange
+    ? percentage
+    : currentTick > tickUp ? 100 : 0;
+
+  return (
+    <Stack spacing="md">
+      <Paper p="md" radius="sm" withBorder sx={{ backgroundColor: '#1f2937', borderColor: '#374151' }}>
+        <Group position="apart" align="flex-start" spacing="xl">
+          {/* Columna izquierda: Tick inferior y actual */}
+          <Stack spacing="xs" style={{ minWidth: '120px' }}>
+            <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Tick Inferior</Text>
+            <Text size="lg" c="#4ade80" fw={700}>{tickLow.toLocaleString()}</Text>
+
+            <Text size="xs" c="dimmed" tt="uppercase" fw={600} mt="sm">Tick Actual</Text>
+            <Text size="xl" c="white" fw={700}>{currentTick.toLocaleString()}</Text>
+
+            <Text size="xs" c="dimmed" tt="uppercase" fw={600} mt="sm">Dist. Inferior</Text>
+            <Text size="sm" c={distanceFromLow < 30 ? '#ef4444' : 'white'} fw={600}>
+              {distanceFromLow.toFixed(1)}%
+            </Text>
+          </Stack>
+
+          {/* Columna central: Barra horizontal */}
+          <div style={{ position: 'relative', width: '300px', height: '120px' }}>
+            {/* Etiqueta de tick superior arriba de la barra */}
+            <Group position="center" mb="xs">
+              <Stack spacing={0} align="center">
+                <Text size="xs" c="#4ade80" fw={600}>Tick Superior</Text>
+                <Text size="lg" c="#4ade80" fw={700}>{tickUp.toLocaleString()}</Text>
+              </Stack>
+            </Group>
+
+            {/* Barra horizontal principal */}
+            <div
+              style={{
+                position: 'relative',
+                width: '100%',
+                height: '16px',
+                backgroundColor: '#1f2937',
+                borderRadius: '8px',
+                border: '2px solid #374151',
+                margin: '8px 0',
+              }}
+            >
+              {/* Línea vertical marcando la posición actual */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: `${displayPosition}%`,
+                  width: '4px',
+                  height: '48px',
+                  backgroundColor: color,
+                  transform: 'translate(-50%, -50%)',
+                  borderRadius: '2px',
+                  boxShadow: `0 0 12px ${color}, 0 0 6px ${color}`,
+                  transition: 'all 0.3s ease',
+                  zIndex: 10,
+                }}
+              />
+
+              {/* Indicador de fuera de rango */}
+              {!inRange && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '-24px',
+                    left: `${currentTick > tickUp ? 100 : 0}%`,
+                    transform: 'translateX(-50%)',
+                  }}
+                >
+                  <IconAlertTriangle size={20} color="#ef4444" />
+                </div>
+              )}
+            </div>
+
+            {/* Badge de estado debajo de la barra */}
+            <Group position="center" mt="xl">
+              <Badge
+                size="lg"
+                color={inRange ? 'green' : 'red'}
+                styles={{
+                  root: {
+                    backgroundColor: color,
+                    color: 'white',
+                  },
+                }}
+              >
+                {statusText}
+              </Badge>
+            </Group>
+          </div>
+
+          {/* Columna derecha: Distancias y tick superior */}
+          <Stack spacing="xs" style={{ minWidth: '120px' }} align="flex-end">
+            <Text size="xs" c="dimmed" tt="uppercase" fw={600}>Tick Superior</Text>
+            <Text size="lg" c="#4ade80" fw={700}>{tickUp.toLocaleString()}</Text>
+
+            <Text size="xs" c="dimmed" tt="uppercase" fw={600} mt="sm">Estado</Text>
+            <Group spacing={4}>
+              {inRange ? (
+                <IconTrophy size={20} color={color} />
+              ) : (
+                <IconAlertTriangle size={20} color={color} />
+              )}
+              <Text size="md" c="white" fw={600}>
+                {inRange ? 'Generando rewards' : 'Sin rewards'}
+              </Text>
+            </Group>
+
+            <Text size="xs" c="dimmed" tt="uppercase" fw={600} mt="sm">Dist. Superior</Text>
+            <Text size="sm" c={distanceFromUp < 30 ? '#ef4444' : 'white'} fw={600}>
+              {distanceFromUp.toFixed(1)}%
+            </Text>
+          </Stack>
+        </Group>
+      </Paper>
+
+      {/* Alerta compacta */}
+      <Alert color={inRange ? 'teal' : 'red'} icon={inRange ? <IconTrophy size={16} /> : <IconAlertTriangle size={16} />}>
+        <Text size="sm" fw={600}>
+          {inRange
+            ? 'Tu posición está generando rewards'
+            : 'Tu posición NO está generando rewards - está fuera de rango'}
+        </Text>
+      </Alert>
+    </Stack>
+  );
 };
 
 // Position Row Component
@@ -111,6 +375,14 @@ const PositionRow = ({ position }: { position: PoolPosition }) => {
             {formatAPY(position.pool.apy)}
           </Text>
         </td>
+        <td style={{ textAlign: 'center', padding: '8px' }}>
+          <RangeIndicatorCompact
+            tickLow={position.tick_low}
+            tickUp={position.tick_up}
+            currentTick={position.current_tick}
+            inRange={position.in_range}
+          />
+        </td>
         <td style={{ textAlign: 'center' }}>
           <Badge
             size="lg"
@@ -144,7 +416,7 @@ const PositionRow = ({ position }: { position: PoolPosition }) => {
       {/* Expandable Details */}
       {expanded && (
         <tr>
-          <td colSpan={9} style={{ padding: 0, backgroundColor: '#0d0f12' }}>
+          <td colSpan={10} style={{ padding: 0, backgroundColor: '#0d0f12' }}>
             <Collapse in={expanded}>
               <Stack p="md" spacing="sm">
                 {/* Pool Details */}
@@ -203,16 +475,17 @@ const PositionRow = ({ position }: { position: PoolPosition }) => {
                   </>
                 )}
 
-                {/* Pending Rewards & Range Status */}
-                {position.pending_rewards && position.pending_rewards.length > 0 ? (
-                  <>
-                    <Group spacing="md" align="center">
-                      <Badge size="xl" color="green" variant="filled" leftSection={<IconTrophy size={18} />}>
-                        EN RANGO
-                      </Badge>
-                      <Text size="sm" c="dimmed">Tu posición está generando rewards</Text>
-                    </Group>
+                {/* Detailed Range Indicator */}
+                <RangeIndicatorDetailed
+                  tickLow={position.tick_low}
+                  tickUp={position.tick_up}
+                  currentTick={position.current_tick}
+                  inRange={position.in_range}
+                />
 
+                {/* Pending Rewards */}
+                {position.pending_rewards && position.pending_rewards.length > 0 && (
+                  <>
                     <Text size="sm" fw={600} c="white">Rewards Acumulados</Text>
                     <Group spacing="sm">
                       {position.pending_rewards.map((reward, idx) => (
@@ -224,20 +497,6 @@ const PositionRow = ({ position }: { position: PoolPosition }) => {
                         Total: {formatCurrency(totalRewardsValue)}
                       </Badge>
                     </Group>
-                  </>
-                ) : (
-                  <>
-                    <Group spacing="md" align="center">
-                      <Badge size="xl" color="red" variant="light" leftSection={<IconAlertTriangle size={18} />}>
-                        FUERA DE RANGO
-                      </Badge>
-                      <Text size="sm" c="dimmed">Tu posición NO está generando rewards</Text>
-                    </Group>
-                    <Alert color="orange" icon={<IconAlertTriangle size={16} />}>
-                      <Text size="sm">
-                        Tu posición está fuera del rango de precios actual. Mueve tu posición para empezar a generar rewards nuevamente.
-                      </Text>
-                    </Alert>
                   </>
                 )}
 
@@ -545,6 +804,7 @@ export function PoolPositions() {
                   <th style={{ textAlign: 'right' }}>Mi Inversión</th>
                   <th style={{ textAlign: 'right' }}>Rewards</th>
                   <th style={{ textAlign: 'right' }}>APY</th>
+                  <th style={{ textAlign: 'center', minWidth: 200 }}>Rango</th>
                   <th style={{ textAlign: 'center' }}>Estado</th>
                   <th style={{ textAlign: 'center' }}>Sync</th>
                   <th style={{ textAlign: 'center' }}>Wallet</th>

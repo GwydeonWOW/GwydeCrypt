@@ -76,22 +76,27 @@ class VfatUserPositionsService
 
         DB::transaction(function () use ($positionsData, $walletAddress, $userId, &$synced) {
             foreach ($positionsData as $position) {
-                // El pool_address está directamente como farm_address
-                $poolAddress = $position['farm_address'] ?? null;
+                // Obtener direcciones de la API
+                $farmAddress = $position['farm_address'] ?? null;
+                $poolAddressFromApi = $position['nft']['pool_address'] ?? null;
 
-                if (!$poolAddress) {
-                    Log::warning('Pool address not found in position data', [
+                if (!$farmAddress) {
+                    Log::warning('Farm address not found in position data', [
                         'wallet' => $walletAddress,
                     ]);
                     continue;
                 }
 
-                // Buscar el pool correspondiente por pool_address
-                $pool = Pool::where('pool_address', $poolAddress)->first();
+                // Buscar el pool correspondiente - intentar primero por pool_address, luego por farm_address
+                $pool = Pool::where('pool_address', $farmAddress)
+                    ->orWhere('pool_address', $poolAddressFromApi)
+                    ->orWhere('farm_address', $farmAddress)
+                    ->first();
 
                 if (!$pool) {
                     Log::warning('Pool not found for user position', [
-                        'pool_address' => $poolAddress,
+                        'farm_address' => $farmAddress,
+                        'pool_address_api' => $poolAddressFromApi,
                         'wallet' => $walletAddress,
                     ]);
                     continue; // Saltar si el pool no existe en nuestra BD
