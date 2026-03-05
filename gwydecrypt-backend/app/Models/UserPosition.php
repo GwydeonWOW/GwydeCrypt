@@ -29,6 +29,9 @@ class UserPosition extends Model
         'current_tick',
         'in_range',
         'last_synced_at',
+        'position_since',
+        'age_in_days',
+        'last_action',
     ];
 
     /**
@@ -47,6 +50,8 @@ class UserPosition extends Model
         'current_tick' => 'integer',
         // in_range uses custom accessor/mutator for PostgreSQL boolean
         'last_synced_at' => 'datetime',
+        'position_since' => 'datetime',
+        'age_in_days' => 'decimal:4',
     ];
 
     /**

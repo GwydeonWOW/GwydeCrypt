@@ -46,6 +46,27 @@ const formatAPY = (apy: number) => {
   return `${apy.toFixed(2)}%`;
 };
 
+// Format time in position
+const formatTimeInPosition = (ageInDays: number | null, positionSince: string | null) => {
+  if (!ageInDays || !positionSince) return null;
+
+  const days = Math.floor(ageInDays);
+  const hours = Math.floor((ageInDays % 1) * 24);
+  const minutes = Math.floor(((ageInDays % 1) * 24 % 1) * 60);
+
+  if (days === 0 && hours === 0) {
+    return `${minutes} min`;
+  } else if (days === 0) {
+    return `${hours}h ${minutes}m`;
+  } else if (days < 30) {
+    return `${days}d ${hours}h`;
+  } else {
+    const months = Math.floor(days / 30);
+    const remainingDays = days % 30;
+    return months > 0 ? `${months}m ${remainingDays}d` : `${days}d`;
+  }
+};
+
 // Range Indicator Props
 interface RangeIndicatorProps {
   tickLow: number | null;
@@ -496,6 +517,28 @@ const PositionRow = ({ position }: { position: PoolPosition }) => {
                       <Badge size="lg" color="green" variant="outline">
                         Total: {formatCurrency(totalRewardsValue)}
                       </Badge>
+                    </Group>
+                  </>
+                )}
+
+                {/* Time in Position */}
+                {position.position_since && (
+                  <>
+                    <Text size="sm" fw={600} c="white">Tiempo en Posición</Text>
+                    <Group spacing="sm">
+                      {formatTimeInPosition(position.age_in_days, position.position_since) && (
+                        <Badge size="lg" color="blue" variant="light" leftSection={<IconClock size={14} />}>
+                          {formatTimeInPosition(position.age_in_days, position.position_since)}
+                        </Badge>
+                      )}
+                      {position.last_action && (
+                        <Badge size="md" color="gray" variant="outline">
+                          Última acción: {position.last_action}
+                        </Badge>
+                      )}
+                      <Text size="xs" c="dimmed">
+                        Desde: {new Date(position.position_since).toLocaleString('es-ES')}
+                      </Text>
                     </Group>
                   </>
                 )}

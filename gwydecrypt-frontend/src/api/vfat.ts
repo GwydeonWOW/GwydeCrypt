@@ -35,6 +35,9 @@ export interface PoolPosition {
   tick_up: number | null;
   current_tick: number | null;
   in_range: boolean | null;
+  position_since: string | null;
+  age_in_days: number | null;
+  last_action: string | null;
   last_synced_at: string;
 }
 

@@ -320,6 +320,9 @@ class VfatController extends BaseController
                     'tick_up' => $position->tick_up,
                     'current_tick' => $position->current_tick,
                     'in_range' => $position->in_range,
+                    'position_since' => $position->position_since?->toIso8601String(),
+                    'age_in_days' => $position->age_in_days,
+                    'last_action' => $position->last_action,
                     'last_synced_at' => $position->last_synced_at?->toIso8601String(),
                 ];
             });

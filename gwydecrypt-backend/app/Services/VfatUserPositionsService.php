@@ -171,6 +171,29 @@ class VfatUserPositionsService
                     }
                 }
 
+                // Extraer datos de tiempo en la posición
+                $positionSince = null;
+                $ageInDays = null;
+                $lastAction = null;
+
+                if (isset($position['oldest_action_timestamp'])) {
+                    try {
+                        $positionSince = now()->parse($position['oldest_action_timestamp']);
+                    } catch (\Exception $e) {
+                        Log::warning('Invalid oldest_action_timestamp', [
+                            'timestamp' => $position['oldest_action_timestamp'] ?? null,
+                        ]);
+                    }
+                }
+
+                if (isset($position['age_in_days'])) {
+                    $ageInDays = floatval($position['age_in_days']);
+                }
+
+                if (isset($position['last_action'])) {
+                    $lastAction = $position['last_action'];
+                }
+
                 // Crear o actualizar posición del usuario
                 $userPosition = UserPosition::updateOrCreate(
                     [
@@ -188,6 +211,9 @@ class VfatUserPositionsService
                         'tick_up' => $tickUp,
                         'current_tick' => $currentTick,
                         'in_range' => $inRange,
+                        'position_since' => $positionSince,
+                        'age_in_days' => $ageInDays,
+                        'last_action' => $lastAction,
                         'last_synced_at' => now(),
                     ]
                 );
