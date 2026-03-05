@@ -2,32 +2,46 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ CRITICAL RULE - GIT OPERATIONS
+
+**🚨 NUNCA, JAMÁS, UNDER NO CIRCUMSTANCES puedes hacer git add, git commit o git push SIN permiso EXPLÍCITO del usuario.**
+
+**THIS IS THE MOST IMPORTANT RULE IN THIS FILE - VIOLATION IS GROUNDS FOR IMMEDIATE SESSION TERMINATION**
+
+### Workflow OBLIGATORIO para cambios en git:
+
+1. ✅ **Hacer los cambios de código** - Modificar archivos según instrucciones del usuario
+2. ✅ **Mostrar los cambios** - Ejecutar `git status` o `git diff` para que el usuario revise
+3. ✅ **ESPERAR** - NO hacer NINGUNA operación git hasta que el usuario diga explícitamente:
+   - "commit y push" ✅
+   - "haz commit de estos cambios" ✅
+   - "sube los cambios a git" ✅
+   - "puedes commitear" ✅
+
+4. ❌ **NUNCA asumir** que puedes hacer commit/push solo porque terminaste los cambios
+5. ❌ **NUNCA hacer git push** sin que el usuario lo pida explícitamente
+
+**Repository URL:** https://github.com/GwydeonWOW/GwydeCrypt.git
+
+**Si tienes duda: PREGUNTA al usuario antes de cualquier operación git**
+
 ## Project Overview
 
 GwydeCrypt is a multi-chain cryptocurrency portfolio tracking platform with backend (Laravel 12/PHP) and frontend (React/TypeScript). The system tracks wallets across multiple blockchains (Ethereum, Solana, Polygon, SUI, Optimism, BNB, Arbitrum, BTC), provides real-time price data from multiple APIs with automatic fallback, and includes investment/sales tracking.
 
 ## Git Guidelines
 
-**CRITICAL: Git operations require explicit user permission**
+**Allowed operations (no permission needed):**
+- Reading files from the repository ✅
+- Making local code changes ✅
+- Modifying files according to user instructions ✅
+- Checking git status or history ✅
 
-✅ **Allowed operations (no permission needed):**
-- Reading files from the repository
-- Making local code changes
-- Modifying files according to user instructions
-- Checking git status or history
-
-❌ **NEVER perform without explicit permission:**
-- `git add` - Adding files to staging
-- `git commit` - Creating commits
-- `git push` - Pushing to remote
-- `git remote` - Modifying remotes
-
-**Repository URL:** https://github.com/GwydeonWOW/GwydeCrypt.git
-
-**Workflow:**
-1. Make code changes as requested
-2. Wait for user to review changes
-3. ONLY commit/push when user explicitly requests it
+**Operations that REQUIRE explicit user permission:**
+- `git add` - ❌ SOLO con permiso explícito
+- `git commit` - ❌ SOLO con permiso explícito
+- `git push` - ❌ SOLO con permiso explícito
+- `git remote` - ❌ SOLO con permiso explícito
 
 ## Common Development Commands
 
