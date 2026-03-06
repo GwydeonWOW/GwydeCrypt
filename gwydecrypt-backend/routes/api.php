@@ -310,6 +310,12 @@ Route::middleware('auth:sanctum')->prefix('vfat/user')->group(function () {
     Route::post('/positions/sync', [VfatController::class, 'syncUserPositions']);
 });
 
+// Closed positions (requiere autenticación)
+Route::middleware('auth:sanctum')->prefix('vfat')->group(function () {
+    Route::get('/closed-positions', [VfatController::class, 'closedPositions']);
+    Route::post('/closed-positions/sync', [VfatController::class, 'syncClosedPositions']);
+});
+
 // Test vfat integration
 Route::get('/test-vfat', function () {
     ini_set('memory_limit', '512M');

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\ClosedPosition;
 use App\Models\Pool;
 use App\Models\UserPosition;
 use App\Repositories\PoolRepository;
@@ -486,6 +487,218 @@ class VfatController extends BaseController
             return response()->json([
                 'chains' => [],
                 'error' => 'Failed to fetch chains',
+            ], 500);
+        }
+    }
+
+    /**
+     * Get user closed positions
+     * GET /api/vfat/closed-positions
+     */
+    public function closedPositions(Request $request): JsonResponse
+    {
+        $startTime = microtime(true);
+
+        try {
+            // Log inicio
+            \Log::info('[CLOSED_POSITIONS] Starting request', [
+                'time' => date('H:i:s'),
+            ]);
+
+            // Obtener usuario autenticado
+            $user = Auth::user();
+
+            if (!$user) {
+                return response()->json([
+                    'error' => 'Unauthorized',
+                ], 401);
+            }
+
+            \Log::info('[CLOSED_POSITIONS] User authenticated', [
+                'user_id' => $user->id,
+                'elapsed' => round((microtime(true) - $startTime) * 1000, 2) . 'ms',
+            ]);
+
+            // Filtros opcionales
+            $poolId = $request->get('pool_id');
+            $chainId = $request->get('chain_id');
+            $sortBy = $request->get('sort_by', 'closed_timestamp'); // closed_timestamp, pnl, roi
+            $sortOrder = $request->get('sort_order', 'desc');
+
+            // Obtener posiciones cerradas (filtrar solo por user_id, no por wallet_address activas)
+            // Nota: Pool usa accessor getNameAttribute(), no podemos usar select()
+            $query = ClosedPosition::forUser($user->id)
+                ->with('pool:id,pool_symbol,protocol_name,chain_name,chain_id,pool_address,farm_address');
+
+            // Aplicar filtros
+            if ($poolId) {
+                $query->where('pool_id', $poolId);
+            }
+
+            if ($chainId) {
+                $query->whereHas('pool', function ($q) use ($chainId) {
+                    $q->where('chain_id', $chainId);
+                });
+            }
+
+            // Aplicar ordenamiento
+            $validSortFields = ['closed_timestamp', 'realized_pnl_usd', 'roi', 'initial_balance_usd'];
+            if (in_array($sortBy, $validSortFields)) {
+                $query->orderBy($sortBy, $sortOrder === 'asc' ? 'asc' : 'desc');
+            } else {
+                $query->orderBy('closed_timestamp', 'desc');
+            }
+
+            $positions = $query->get();
+
+            \Log::info('[CLOSED_POSITIONS] Query executed', [
+                'count' => $positions->count(),
+                'elapsed' => round((microtime(true) - $startTime) * 1000, 2) . 'ms',
+            ]);
+
+            // Formatear respuesta
+            $formattedPositions = $positions->map(function ($position) {
+                return [
+                    'id' => $position->id,
+                    'wallet_address' => $position->wallet_address,
+                    'pool' => [
+                        'id' => $position->pool->id,
+                        'name' => $position->pool->name,
+                        'protocol' => $position->pool->protocol_name,
+                        'chain' => $position->pool->chain_name,
+                        'chain_id' => $position->pool->chain_id,
+                        'pool_address' => $position->pool->pool_address,
+                        'farm_address' => $position->pool->farm_address,
+                    ],
+                    'token_id' => $position->token_id,
+                    'original_token_id' => $position->original_token_id,
+                    'nft_id_chain' => $position->nft_id_chain,
+                    'oldest_action_timestamp' => $position->oldest_action_timestamp?->toIso8601String(),
+                    'closed_timestamp' => $position->closed_timestamp?->toIso8601String(),
+                    'age_in_days' => $position->age_in_days ? (float) $position->age_in_days : null,
+                    'realized_pnl_usd' => (float) $position->realized_pnl_usd,
+                    'initial_balance_usd' => (float) $position->initial_balance_usd,
+                    'total_pnl_usd' => (float) $position->total_pnl_usd,
+                    'roi' => (float) $position->roi,
+                    'underlying' => $position->underlying ?? [],
+                    'last_action' => $position->last_action,
+                    'is_migrated' => $position->is_migrated,
+                    'chain_length' => $position->chain_length,
+                ];
+            });
+
+            // Calcular estadísticas
+            $totalPnl = $positions->sum('realized_pnl_usd');
+            $totalInitial = $positions->sum('initial_balance_usd');
+            $profitableCount = $positions->where('realized_pnl_usd', '>', 0)->count();
+            $unprofitableCount = $positions->where('realized_pnl_usd', '<', 0)->count();
+
+            $avgRoi = $positions->count() > 0
+                ? $positions->sum('roi') / $positions->count()
+                : 0;
+
+            \Log::info('[CLOSED_POSITIONS] About to return', [
+                'elapsed' => round((microtime(true) - $startTime) * 1000, 2) . 'ms',
+            ]);
+
+            return response()->json([
+                'positions' => $formattedPositions,
+                'stats' => [
+                    'total_positions' => $positions->count(),
+                    'total_pnl_usd' => $totalPnl,
+                    'total_initial_usd' => $totalInitial,
+                    'avg_roi' => $avgRoi,
+                    'profitable_count' => $profitableCount,
+                    'unprofitable_count' => $unprofitableCount,
+                ],
+                'data_source' => 'vfat.io (closed-positions-v2)',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('VFAT closed positions error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'positions' => [],
+                'stats' => [
+                    'total_positions' => 0,
+                    'total_pnl_usd' => 0,
+                ],
+                'error' => 'Failed to fetch closed positions: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Sync user closed positions
+     * POST /api/vfat/closed-positions/sync
+     */
+    public function syncClosedPositions(Request $request): JsonResponse
+    {
+        try {
+            // Aumentar límite de ejecución para sincronización de múltiples chains
+            set_time_limit(300); // 5 minutos
+
+            $user = Auth::user();
+
+            if (!$user) {
+                return response()->json([
+                    'error' => 'Unauthorized',
+                ], 401);
+            }
+
+            // Obtener todas las wallets activas del usuario
+            $wallets = $user->wallets()->where('is_active', 'true')->get();
+
+            if ($wallets->isEmpty()) {
+                return response()->json([
+                    'error' => 'No active wallets found for this user',
+                ], 400);
+            }
+
+            $totalSynced = 0;
+            $results = [];
+
+            // Sincronizar posiciones cerradas para cada wallet
+            foreach ($wallets as $wallet) {
+                try {
+                    $positions = $this->positionsService->syncClosedPositions(
+                        $wallet->address,
+                        $user->id
+                    );
+
+                    $results[$wallet->address] = [
+                        'success' => true,
+                        'count' => count($positions),
+                        'chain' => $wallet->chain,
+                        'label' => $wallet->label,
+                    ];
+
+                    $totalSynced += count($positions);
+                } catch (\Exception $e) {
+                    $results[$wallet->address] = [
+                        'success' => false,
+                        'error' => $e->getMessage(),
+                    ];
+                }
+            }
+
+            return response()->json([
+                'message' => 'Closed positions synced successfully',
+                'total_synced' => $totalSynced,
+                'wallets_synced' => count($wallets),
+                'results' => $results,
+                'synced_at' => now()->toIso8601String(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('VFAT sync closed positions error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to sync closed positions: ' . $e->getMessage(),
             ], 500);
         }
     }
