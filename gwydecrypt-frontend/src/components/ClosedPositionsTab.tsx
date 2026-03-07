@@ -46,6 +46,24 @@ const formatROI = (roi: number) => {
   return `${roi >= 0 ? '+' : ''}${roi.toFixed(2)}%`;
 };
 
+// Format time in position (days to readable format)
+const formatTimeInPosition = (ageInDays: number | null) => {
+  if (!ageInDays) return 'N/A';
+
+  const days = Math.floor(ageInDays);
+  const hours = Math.floor((ageInDays % 1) * 24);
+
+  if (days === 0) {
+    return `${hours}h`;
+  } else if (days < 30) {
+    return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+  } else {
+    const months = Math.floor(days / 30);
+    const remainingDays = days % 30;
+    return remainingDays > 0 ? `${months}m ${remainingDays}d` : `${months}m`;
+  }
+};
+
 // Componente para botones de ordenamiento en cabeceras
 const SortableHeader = ({
   label,
@@ -480,7 +498,7 @@ export function ClosedPositionsTab() {
                         </td>
                         <td style={{ textAlign: 'center' }}>
                           <Text size="sm" c="dimmed">
-                            {position.age_in_days ? `${parseFloat(position.age_in_days).toFixed(1)}d` : 'N/A'}
+                            {formatTimeInPosition(position.age_in_days)}
                           </Text>
                         </td>
                         <td style={{ textAlign: 'center' }}>
@@ -538,7 +556,7 @@ export function ClosedPositionsTab() {
                                   <Stack spacing="xs">
                                     <Text size="xs" c="dimmed">Tiempo Activa</Text>
                                     <Text size="sm" c="white">
-                                      {position.age_in_days ? `${parseFloat(position.age_in_days).toFixed(2)} días` : 'N/A'}
+                                      {formatTimeInPosition(position.age_in_days)}
                                     </Text>
                                   </Stack>
                                 </Group>
