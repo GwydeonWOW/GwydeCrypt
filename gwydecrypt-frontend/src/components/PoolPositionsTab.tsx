@@ -110,6 +110,18 @@ const calculateRangeStatus = (tickLow: number, tickUp: number, currentTick: numb
   return { percentage, color, statusText, statusLevel };
 };
 
+// Calculate estimated earnings based on APY and time in position
+const calculateEstimatedEarnings = (apy: number, ageInDays: number | null, currentValue: number) => {
+  if (!ageInDays || ageInDays <= 0 || apy <= 0) return null;
+
+  // Simple estimate: APY * (days / 365) * average value
+  // This is a rough estimate assuming constant value
+  const timeInYears = ageInDays / 365;
+  const estimatedEarnings = currentValue * (apy / 100) * timeInYears;
+
+  return estimatedEarnings;
+};
+
 // Compact Range Indicator (horizontal bar with vertical line)
 const RangeIndicatorCompact = ({ tickLow, tickUp, currentTick, inRange }: RangeIndicatorProps) => {
   if (tickLow === null || tickUp === null || currentTick === null) {
@@ -532,6 +544,40 @@ const PositionRow = ({ position }: { position: PoolPosition }) => {
                     </Group>
                   </>
                 )}
+
+                {/* Total Generated */}
+                <Paper p="sm" radius="sm" withBorder sx={{ backgroundColor: '#1a1d1f', borderColor: '#2c3033' }}>
+                  <Group position="apart" align="center">
+                    <Group spacing="xs">
+                      <IconScale size={18} color="#4ade80" />
+                      <Text size="sm" fw={600} c="white">Total Generado</Text>
+                    </Group>
+                    <Stack spacing={0} align="flex-end">
+                      {totalRewardsValue > 0 && (
+                        <Group spacing="xs">
+                          <Text size="xs" c="dimmed">Rewards:</Text>
+                          <Text size="sm" fw={600} c="green.4">{formatCurrency(totalRewardsValue)}</Text>
+                        </Group>
+                      )}
+                      {(() => {
+                        const estimatedEarnings = calculateEstimatedEarnings(
+                          position.pool.apy,
+                          position.age_in_days,
+                          position.user_balance_usd
+                        );
+                        return estimatedEarnings !== null ? (
+                          <Group spacing="xs">
+                            <Text size="xs" c="dimmed">Estimado APY:</Text>
+                            <Text size="sm" fw={600} c="blue.4">{formatCurrency(estimatedEarnings)}</Text>
+                            <Tooltip label="Estimación basada en APY actual y tiempo en posición">
+                              <IconAlertTriangle size={12} color="#6b7280" style={{ cursor: 'help' }} />
+                            </Tooltip>
+                          </Group>
+                        ) : null;
+                      })()}
+                    </Stack>
+                  </Group>
+                </Paper>
 
                 {/* Time in Position */}
                 {position.position_since && (
