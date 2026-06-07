@@ -1,0 +1,129 @@
+version: "3.8"
+
+services:
+  # ============================================
+  # PostgreSQL Database
+  # ============================================
+  db:
+    image: postgres:16-alpine
+    container_name: gwydecrypt-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-gwydecrypt}
+      POSTGRES_USER: ${DB_USERNAME:-gwydecrypt}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-gwydecrypt}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gwydecrypt
+
+  # ============================================
+  # Redis (Cache + Queue + Session)
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: gwydecrypt-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redisdata:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gwydecrypt
+
+  # ============================================
+  # Backend - Laravel API
+  # Image: ghcr.io/gwydeonwow/gwydecrypt-backend
+  # ============================================
+  backend:
+    image: ghcr.io/gwydeonwow/gwydecrypt-backend:latest
+    container_name: gwydecrypt-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_NAME: GwydeCrypt
+      APP_ENV: production
+      APP_KEY: ${APP_KEY}
+      APP_DEBUG: "false"
+      APP_URL: ${APP_URL:-http://localhost}
+
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-gwydecrypt}
+      DB_USERNAME: ${DB_USERNAME:-gwydecrypt}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+
+      CACHE_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: redis
+      SESSION_DOMAIN: ${SESSION_DOMAIN:-localhost}
+
+      REDIS_HOST: redis
+      REDIS_PASSWORD: null
+      REDIS_PORT: 6379
+
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: ${LOG_LEVEL:-warning}
+
+      COINGECKO_API_URL: https://api.coingecko.com/api/v3
+      ZERION_API_URL: https://api.zerion.io/v1
+      JUPITER_API_URL: https://price.jup.ag/v4
+
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-admin@gwydecrypt.com}
+    ports:
+      - "8000:80"
+    volumes:
+      - backend_storage:/var/www/html/storage
+    networks:
+      - gwydecrypt
+
+  # ============================================
+  # Frontend - React SPA
+  # Image: ghcr.io/gwydeonwow/gwydecrypt-frontend
+  # ============================================
+  frontend:
+    image: ghcr.io/gwydeonwow/gwydecrypt-frontend:latest
+    container_name: gwydecrypt-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    networks:
+      - gwydecrypt
+
+# ============================================
+# Volumes
+# ============================================
+volumes:
+  pgdata:
+    driver: local
+  redisdata:
+    driver: local
+  backend_storage:
+    driver: local
+
+# ============================================
+# Network
+# ============================================
+networks:
+  gwydecrypt:
+    driver: bridge

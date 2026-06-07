@@ -1,0 +1,13 @@
+.git
+.github
+.env
+.env.*
+node_modules
+dist
+*.log
+.idea
+.vscode
+.DS_Store
+coverage
+*.md
+!README.md
