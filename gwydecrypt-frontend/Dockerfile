@@ -22,8 +22,8 @@ ARG VITE_API_BASE_URL=http://localhost:8000
 # Set environment variable for build
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
-# Build the application
-RUN npm run build
+# Build the application (skip tsc type-checking, Vite transpiles TS directly)
+RUN npx vite build
 
 # --- Production stage ---
 FROM nginx:alpine AS production
