@@ -6,7 +6,6 @@ services:
   # ============================================
   db:
     image: postgres:16-alpine
-    container_name: gwydecrypt-db
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_DATABASE:-gwydecrypt}
@@ -14,8 +13,6 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-gwydecrypt}"]
       interval: 10s
@@ -29,13 +26,10 @@ services:
   # ============================================
   redis:
     image: redis:7-alpine
-    container_name: gwydecrypt-redis
     restart: unless-stopped
     command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
     volumes:
       - redisdata:/data
-    ports:
-      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -50,7 +44,6 @@ services:
   # ============================================
   backend:
     image: ghcr.io/gwydeonwow/gwydecrypt-backend:latest
-    container_name: gwydecrypt-backend
     restart: unless-stopped
     depends_on:
       db:
@@ -88,8 +81,8 @@ services:
       JUPITER_API_URL: https://price.jup.ag/v4
 
       ADMIN_EMAILS: ${ADMIN_EMAILS:-admin@gwydecrypt.com}
-    ports:
-      - "8000:80"
+    expose:
+      - "80"
     volumes:
       - backend_storage:/var/www/html/storage
     networks:
@@ -101,12 +94,11 @@ services:
   # ============================================
   frontend:
     image: ghcr.io/gwydeonwow/gwydecrypt-frontend:latest
-    container_name: gwydecrypt-frontend
     restart: unless-stopped
     depends_on:
       - backend
-    ports:
-      - "3000:80"
+    expose:
+      - "80"
     networks:
       - gwydecrypt
 
