@@ -3,9 +3,18 @@ set -e
 
 echo "=== GwydeCrypt Backend Starting ==="
 
-# Wait for database
+# Create .env file if it doesn't exist (Laravel requires it)
+if [ ! -f /var/www/html/.env ]; then
+    echo "Creating .env file from .env.example..."
+    cp /var/www/html/.env.example /var/www/html/.env
+fi
+
+# Debug: show DB connection info
+echo "DB_HOST=${DB_HOST:-db}, DB_PORT=${DB_PORT:-5432}, DB_DATABASE=${DB_DATABASE:-gwydecrypt}, DB_USERNAME=${DB_USERNAME:-gwydecrypt}"
+
+# Wait for database using pg_isready (more reliable than php artisan)
 echo "Waiting for database..."
-until php artisan db:show --database=pgsql > /dev/null 2>&1; do
+until pg_isready -h "${DB_HOST:-db}" -p "${DB_PORT:-5432}" -U "${DB_USERNAME:-gwydecrypt}" -q; do
     echo "Database not ready, waiting..."
     sleep 2
 done
